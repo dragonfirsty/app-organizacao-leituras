@@ -11,16 +11,26 @@ void main() {
 }
 
 class Livro {
-  Livro({required this.titulo, required this.autor, required this.status});
+  Livro({
+    required this.titulo,
+    required this.autor,
+    required this.status,
+    this.nota,
+    this.opiniao = '',
+  });
 
   final String titulo;
   final String autor;
   String status;
+  int? nota;
+  String opiniao;
 
   Map<String, dynamic> toJson() => {
     'titulo': titulo,
     'autor': autor,
     'status': status,
+    'nota': nota,
+    'opiniao': opiniao,
   };
 
   factory Livro.fromJson(Map<String, dynamic> json) {
@@ -28,6 +38,8 @@ class Livro {
       titulo: json['titulo'] as String,
       autor: json['autor'] as String,
       status: json['status'] as String,
+      nota: json['nota'] as int?,
+      opiniao: json['opiniao'] as String? ?? '',
     );
   }
 }
@@ -125,6 +137,16 @@ class _ListaLivrosPageState extends State<ListaLivrosPage> {
     setState(() => _livros[index].status = novoStatus);
     await _salvarLivros();
     _mostrarMensagem('Status atualizado.');
+  }
+
+  Future<void> _alterarNota(int index, int nota) async {
+    setState(() => _livros[index].nota = nota);
+    await _salvarLivros();
+  }
+
+  Future<void> _alterarOpiniao(int index, String opiniao) async {
+    _livros[index].opiniao = opiniao;
+    await _salvarLivros();
   }
 
   List<int> get _indicesFiltrados {
@@ -257,6 +279,62 @@ class _ListaLivrosPageState extends State<ListaLivrosPage> {
                                           }
                                         },
                                       ),
+                                      if (livro.status == 'Concluído') ...[
+                                        const SizedBox(height: 8),
+                                        const Text(
+                                          'Nota',
+                                          style: TextStyle(
+                                            fontWeight: FontWeight.w600,
+                                          ),
+                                        ),
+                                        Row(
+                                          children: List.generate(5, (estrela) {
+                                            final numero = estrela + 1;
+                                            final preenchida =
+                                                (livro.nota ?? 0) >= numero;
+
+                                            return IconButton(
+                                              tooltip:
+                                                  '$numero ${numero == 1 ? 'estrela' : 'estrelas'}',
+                                              padding: EdgeInsets.zero,
+                                              constraints:
+                                                  const BoxConstraints(
+                                                    minWidth: 36,
+                                                    minHeight: 36,
+                                                  ),
+                                              icon: Icon(
+                                                preenchida
+                                                    ? Icons.star
+                                                    : Icons.star_border,
+                                                color: preenchida
+                                                    ? Colors.amber
+                                                    : null,
+                                              ),
+                                              onPressed: () =>
+                                                  _alterarNota(index, numero),
+                                            );
+                                          }),
+                                        ),
+                                        TextFormField(
+                                          key: ValueKey(
+                                            'opiniao-${livro.titulo}-$index',
+                                          ),
+                                          initialValue: livro.opiniao,
+                                          maxLength: 200,
+                                          maxLines: 3,
+                                          minLines: 1,
+                                          decoration:
+                                              const InputDecoration(
+                                                labelText:
+                                                    'Comentário curto',
+                                                hintText:
+                                                    'Escreva sua opinião',
+                                                border: OutlineInputBorder(),
+                                              ),
+                                          onChanged: (valor) =>
+                                              _alterarOpiniao(index, valor),
+                                        ),
+                                      ],
                                     ],
                                   ),
                                 ),
