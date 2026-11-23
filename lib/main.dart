@@ -60,11 +60,20 @@ class _ListaLivrosPageState extends State<ListaLivrosPage> {
   static const _storageKey = 'livros';
   List<Livro> _livros = [];
   bool _carregando = true;
+  final TextEditingController _buscaController = TextEditingController();
+  String _busca = '';
+  String _statusFiltro = 'Todos';
 
   @override
   void initState() {
     super.initState();
     _carregarLivros();
+  }
+
+  @override
+  void dispose() {
+    _buscaController.dispose();
+    super.dispose();
   }
 
   Future<void> _carregarLivros() async {
@@ -118,8 +127,26 @@ class _ListaLivrosPageState extends State<ListaLivrosPage> {
     _mostrarMensagem('Status atualizado.');
   }
 
+  List<int> get _indicesFiltrados {
+    final busca = _busca.trim().toLowerCase();
+
+    return List.generate(_livros.length, (index) => index).where((index) {
+      final livro = _livros[index];
+      final correspondeBusca =
+          busca.isEmpty ||
+          livro.titulo.toLowerCase().contains(busca) ||
+          livro.autor.toLowerCase().contains(busca);
+      final correspondeStatus =
+          _statusFiltro == 'Todos' || livro.status == _statusFiltro;
+
+      return correspondeBusca && correspondeStatus;
+    }).toList();
+  }
+
   @override
   Widget build(BuildContext context) {
+    final indicesFiltrados = _indicesFiltrados;
+
     return Scaffold(
       appBar: AppBar(
         title: Column(
@@ -132,72 +159,145 @@ class _ListaLivrosPageState extends State<ListaLivrosPage> {
       ),
       body: _carregando
           ? const Center(child: CircularProgressIndicator())
-          : _livros.isEmpty
-          ? const Center(
-              child: Text(
-                'Nenhum livro cadastrado.',
-                style: TextStyle(fontSize: 18),
-              ),
-            )
-          : ListView.builder(
-              padding: const EdgeInsets.all(12),
-              itemCount: _livros.length,
-              itemBuilder: (context, index) {
-                final livro = _livros[index];
-                return Card(
-                  child: ListTile(
-                    title: Text(
-                      livro.titulo,
-                      style: const TextStyle(fontWeight: FontWeight.bold),
+          : Column(
+              children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
+                  child: TextField(
+                    controller: _buscaController,
+                    decoration: InputDecoration(
+                      labelText: 'Buscar por título ou autor',
+                      prefixIcon: const Icon(Icons.search),
+                      suffixIcon: _busca.isEmpty
+                          ? null
+                          : IconButton(
+                              tooltip: 'Limpar busca',
+                              icon: const Icon(Icons.clear),
+                              onPressed: () {
+                                _buscaController.clear();
+                                setState(() => _busca = '');
+                              },
+                            ),
+                      border: const OutlineInputBorder(),
                     ),
-                    subtitle: Padding(
-                      padding: const EdgeInsets.only(top: 8),
-                      child: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text('Autor: ${livro.autor}'),
-                          const SizedBox(height: 6),
-                          DropdownButton<String>(
-                            value: livro.status,
-                            isDense: true,
-                            underline: const SizedBox.shrink(),
-                            items: const [
-                              DropdownMenuItem(
-                                value: 'Quero ler',
-                                child: Text('Quero ler'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Lendo',
-                                child: Text('Lendo'),
-                              ),
-                              DropdownMenuItem(
-                                value: 'Concluído',
-                                child: Text('Concluído'),
-                              ),
-                            ],
-                            onChanged: (valor) {
-                              if (valor != null) {
-                                _alterarStatus(index, valor);
-                              }
-                            },
-                          ),
-                        ],
-                      ),
-                    ),
-                    trailing: IconButton(
-                      tooltip: 'Remover',
-                      icon: const Icon(Icons.delete_outline),
-                      onPressed: () => _removerLivro(index),
-                    ),
+                    onChanged: (valor) {
+                      setState(() => _busca = valor);
+                    },
                   ),
-                );
-              },
+                ),
+                SingleChildScrollView(
+                  scrollDirection: Axis.horizontal,
+                  padding: const EdgeInsets.symmetric(horizontal: 12),
+                  child: Row(
+                    children: const [
+                      _FiltroChip(status: 'Todos'),
+                      SizedBox(width: 8),
+                      _FiltroChip(status: 'Quero ler'),
+                      SizedBox(width: 8),
+                      _FiltroChip(status: 'Lendo'),
+                      SizedBox(width: 8),
+                      _FiltroChip(status: 'Concluído'),
+                    ],
+                  ),
+                ),
+                const SizedBox(height: 4),
+                Expanded(
+                  child: indicesFiltrados.isEmpty
+                      ? Center(
+                          child: Text(
+                            _livros.isEmpty
+                                ? 'Nenhum livro cadastrado.'
+                                : 'Nenhum livro encontrado.',
+                            style: const TextStyle(fontSize: 18),
+                          ),
+                        )
+                      : ListView.builder(
+                          padding: const EdgeInsets.all(12),
+                          itemCount: indicesFiltrados.length,
+                          itemBuilder: (context, posicao) {
+                            final index = indicesFiltrados[posicao];
+                            final livro = _livros[index];
+                            return Card(
+                              child: ListTile(
+                                title: Text(
+                                  livro.titulo,
+                                  style: const TextStyle(
+                                    fontWeight: FontWeight.bold,
+                                  ),
+                                ),
+                                subtitle: Padding(
+                                  padding: const EdgeInsets.only(top: 8),
+                                  child: Column(
+                                    crossAxisAlignment:
+                                        CrossAxisAlignment.start,
+                                    children: [
+                                      Text('Autor: ${livro.autor}'),
+                                      const SizedBox(height: 6),
+                                      DropdownButton<String>(
+                                        value: livro.status,
+                                        isDense: true,
+                                        underline: const SizedBox.shrink(),
+                                        items: const [
+                                          DropdownMenuItem(
+                                            value: 'Quero ler',
+                                            child: Text('Quero ler'),
+                                          ),
+                                          DropdownMenuItem(
+                                            value: 'Lendo',
+                                            child: Text('Lendo'),
+                                          ),
+                                          DropdownMenuItem(
+                                            value: 'Concluído',
+                                            child: Text('Concluído'),
+                                          ),
+                                        ],
+                                        onChanged: (valor) {
+                                          if (valor != null) {
+                                            _alterarStatus(index, valor);
+                                          }
+                                        },
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                                trailing: IconButton(
+                                  tooltip: 'Remover',
+                                  icon: const Icon(Icons.delete_outline),
+                                  onPressed: () => _removerLivro(index),
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                ),
+              ],
             ),
       floatingActionButton: FloatingActionButton.extended(
         onPressed: _abrirCadastro,
         icon: const Icon(Icons.add),
         label: const Text('Cadastrar livro'),
       ),
+    );
+  }
+}
+
+class _FiltroChip extends StatelessWidget {
+  const _FiltroChip({required this.status});
+
+  final String status;
+
+  @override
+  Widget build(BuildContext context) {
+    final pageState = context.findAncestorStateOfType<_ListaLivrosPageState>();
+
+    return ChoiceChip(
+      label: Text(status),
+      selected: pageState?._statusFiltro == status,
+      onSelected: (selecionado) {
+        if (selecionado) {
+          pageState?.setState(() => pageState._statusFiltro = status);
+        }
+      },
     );
   }
 }
