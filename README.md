@@ -10,6 +10,7 @@ Aplicativo Flutter para cadastrar, listar, remover e atualizar o status de livro
 ## Funcionalidades
 
 - Lista persistente de livros
+- Resumo da estante com contagem por status e total de livros
 - Cadastro de título e autor
 - Status: Quero ler, Lendo ou Concluído
 - Avaliação de 1 a 5 estrelas e comentário curto para livros concluídos

@@ -168,6 +168,16 @@ class _ListaLivrosPageState extends State<ListaLivrosPage> {
   @override
   Widget build(BuildContext context) {
     final indicesFiltrados = _indicesFiltrados;
+    final totalLivros = _livros.length;
+    final totalQueroLer = _livros
+        .where((livro) => livro.status == 'Quero ler')
+        .length;
+    final totalLendo = _livros
+        .where((livro) => livro.status == 'Lendo')
+        .length;
+    final totalConcluidos = _livros
+        .where((livro) => livro.status == 'Concluído')
+        .length;
 
     return Scaffold(
       appBar: AppBar(
@@ -183,6 +193,42 @@ class _ListaLivrosPageState extends State<ListaLivrosPage> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
               children: [
+                Padding(
+                  padding: const EdgeInsets.fromLTRB(12, 12, 12, 0),
+                  child: Card(
+                    child: Padding(
+                      padding: const EdgeInsets.all(16),
+                      child: Row(
+                        children: [
+                          Expanded(
+                            child: _ResumoEstanteItem(
+                              valor: totalLivros,
+                              titulo: 'Total',
+                            ),
+                          ),
+                          Expanded(
+                            child: _ResumoEstanteItem(
+                              valor: totalQueroLer,
+                              titulo: 'Quero ler',
+                            ),
+                          ),
+                          Expanded(
+                            child: _ResumoEstanteItem(
+                              valor: totalLendo,
+                              titulo: 'Lendo',
+                            ),
+                          ),
+                          Expanded(
+                            child: _ResumoEstanteItem(
+                              valor: totalConcluidos,
+                              titulo: 'Concluídos',
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ),
+                ),
                 Padding(
                   padding: const EdgeInsets.fromLTRB(12, 12, 12, 8),
                   child: TextField(
@@ -376,6 +422,34 @@ class _FiltroChip extends StatelessWidget {
           pageState?.setState(() => pageState._statusFiltro = status);
         }
       },
+    );
+  }
+}
+
+class _ResumoEstanteItem extends StatelessWidget {
+  const _ResumoEstanteItem({required this.valor, required this.titulo});
+
+  final int valor;
+  final String titulo;
+
+  @override
+  Widget build(BuildContext context) {
+    return Column(
+      mainAxisSize: MainAxisSize.min,
+      children: [
+        Text(
+          '$valor',
+          style: Theme.of(context).textTheme.headlineSmall?.copyWith(
+            fontWeight: FontWeight.bold,
+          ),
+        ),
+        const SizedBox(height: 4),
+        Text(
+          titulo,
+          textAlign: TextAlign.center,
+          style: Theme.of(context).textTheme.bodySmall,
+        ),
+      ],
     );
   }
 }
